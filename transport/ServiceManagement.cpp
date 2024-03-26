@@ -71,7 +71,16 @@ static constexpr bool kIsRecovery = true;
 static constexpr bool kIsRecovery = false;
 #endif
 
-static void waitForHwServiceManager() {
+static bool isHwServiceManagerInstalled() {
+    return access("/system_ext/bin/hwservicemanager", F_OK) == 0 ||
+           access("/system/system_ext/bin/hwservicemanager", F_OK) == 0 ||
+           access("/system/bin/hwservicemanager", F_OK) == 0;
+}
+
+static bool waitForHwServiceManager() {
+    if (!isHwServiceManagerInstalled()) {
+        return false;
+    }
     // TODO(b/31559095): need bionic host so that we can use 'prop_info' returned
     // from WaitForProperty
 #ifdef __ANDROID__
@@ -80,10 +89,21 @@ static void waitForHwServiceManager() {
     using std::literals::chrono_literals::operator""s;
 
     using android::base::WaitForProperty;
-    while (!WaitForProperty(kHwServicemanagerReadyProperty, "true", 1s)) {
+    while (true) {
+        if (base::GetBoolProperty("hwservicemanager.disabled", false)) {
+            return false;
+        }
+        if (WaitForProperty(kHwServicemanagerReadyProperty, "true", 1s)) {
+            return true;
+        }
         LOG(WARNING) << "Waited for hwservicemanager.ready for a second, waiting another...";
     }
 #endif  // __ANDROID__
+    return true;
+}
+
+bool isHidlSupported() {
+    return waitForHwServiceManager();
 }
 
 static std::string binaryName() {
@@ -209,31 +229,6 @@ sp<IServiceManager1_1> defaultServiceManager1_1() {
 static bool isServiceManager(const hidl_string& fqName) {
     return fqName == IServiceManager1_0::descriptor || fqName == IServiceManager1_1::descriptor ||
            fqName == IServiceManager1_2::descriptor;
-}
-
-static bool isHwServiceManagerInstalled() {
-    return access("/system_ext/bin/hwservicemanager", F_OK) == 0 ||
-           access("/system/system_ext/bin/hwservicemanager", F_OK) == 0 ||
-           access("/system/bin/hwservicemanager", F_OK) == 0;
-}
-
-bool isHidlSupported() {
-    if (!isHwServiceManagerInstalled()) {
-        return false;
-    }
-#ifdef __ANDROID__
-    static const char* kVendorApiProperty = "ro.vendor.api_level";
-    // HIDL and hwservicemanager are not supported in Android V+
-    // This is also set with `max-level="8"` in the framework manifest fragment
-    // for android.hidl.manager. We don't check for android.hidl.manager to be
-    // declared through defaultServiceManager1_2() because the fake
-    // servicemaanger will say it is declared.
-    return android::base::GetIntProperty(kVendorApiProperty, 0) < __ANDROID_API_V__;
-#else
-    // No access to properties and no requirement for dropping HIDL support if
-    // this isn't Android
-    return true;
-#endif  // __ANDROID__
 }
 
 /*
@@ -397,20 +392,18 @@ sp<IServiceManager1_2> defaultServiceManager1_2() {
             return gDefaultServiceManager;
         }
 
-        if (!isHidlSupported()) {
-            // hwservicemanager is not available on this device.
-            LOG(WARNING) << "hwservicemanager is not supported on the device.";
-            gDefaultServiceManager = sp<NoHwServiceManager>::make();
-            return gDefaultServiceManager;
-        }
-
         if (access("/dev/hwbinder", F_OK|R_OK|W_OK) != 0) {
             // HwBinder not available on this device or not accessible to
             // this process.
             return nullptr;
         }
 
-        waitForHwServiceManager();
+        if (!isHidlSupported()) {
+            // hwservicemanager is not available on this device.
+            LOG(WARNING) << "hwservicemanager is not supported on the device.";
+            gDefaultServiceManager = sp<NoHwServiceManager>::make();
+            return gDefaultServiceManager;
+        }
 
         while (gDefaultServiceManager == nullptr) {
             gDefaultServiceManager =
