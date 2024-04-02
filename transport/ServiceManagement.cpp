@@ -222,13 +222,13 @@ bool isHidlSupported() {
         return false;
     }
 #ifdef __ANDROID__
+    // TODO(b/218588089) remove this temporary support variable once Cuttlefish
+    // (the only current Android V launching device) no longer requires HIDL.
+    constexpr bool kTempHidlSupport = true;
     static const char* kVendorApiProperty = "ro.vendor.api_level";
     // HIDL and hwservicemanager are not supported in Android V+
-    // This is also set with `max-level="8"` in the framework manifest fragment
-    // for android.hidl.manager. We don't check for android.hidl.manager to be
-    // declared through defaultServiceManager1_2() because the fake
-    // servicemaanger will say it is declared.
-    return android::base::GetIntProperty(kVendorApiProperty, 0) < __ANDROID_API_V__;
+    return android::base::GetIntProperty(kVendorApiProperty, 0) < __ANDROID_API_V__ ||
+           kTempHidlSupport;
 #else
     // No access to properties and no requirement for dropping HIDL support if
     // this isn't Android
