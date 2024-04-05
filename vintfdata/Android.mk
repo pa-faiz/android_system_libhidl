@@ -28,6 +28,21 @@ ifdef DEVICE_FRAMEWORK_MANIFEST_FILE
 endif
 
 SYSTEM_EXT_MANIFEST_INPUT_FILES := $(LOCAL_PATH)/system_ext_manifest.default.xml
+
+ifeq ($(PRODUCT_HIDL_ENABLED),true)
+ifneq ($(filter hwservicemanager,$(PRODUCT_PACKAGES)),)
+SYSTEM_EXT_MANIFEST_INPUT_FILES += $(TOPDIR)system/hwservicemanager/hwservicemanager_no_max.xml
+else
+$(error If PRODUCT_HIDL_ENABLED is set, hwservicemanager must be added to PRODUCT_PACKAGES explicitly)
+endif
+else
+ifneq ($(filter hwservicemanager,$(PRODUCT_PACKAGES)),)
+SYSTEM_EXT_MANIFEST_INPUT_FILES += $(TOPDIR)system/hwservicemanager/hwservicemanager.xml
+else ifneq ($(filter hwservicemanager,$(PRODUCT_PACKAGES_SHIPPING_API_LEVEL_34)),)
+SYSTEM_EXT_MANIFEST_INPUT_FILES += $(TOPDIR)system/hwservicemanager/hwservicemanager.xml
+endif
+endif
+
 ifdef SYSTEM_EXT_MANIFEST_FILES
   SYSTEM_EXT_MANIFEST_INPUT_FILES += $(SYSTEM_EXT_MANIFEST_FILES)
 endif
