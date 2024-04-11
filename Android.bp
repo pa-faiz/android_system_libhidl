@@ -104,10 +104,7 @@ cc_library {
         "com.android.nfcservices",
         "com.android.tethering",
     ],
-    vndk: {
-        enabled: true,
-        support_system_process: true,
-    },
+    double_loadable: true,
     whole_static_libs: [
         "libhwbinder-impl-internal",
     ],
@@ -128,6 +125,7 @@ cc_library {
         // "//hardware:__subpackages__",
         // "//test/sts:__subpackages__",
         // "//vendor:__subpackages__",
+        // "//visibility:any_system_partition",
     // ],
 }
 
