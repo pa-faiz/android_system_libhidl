@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+package {
+    default_team: "trendy_team_android_kernel",
+}
+
 cc_defaults {
     name: "libHidlBase_fuzzer_defaults",
     host_supported: true,
@@ -54,6 +58,6 @@ cc_defaults {
 
 cc_fuzz {
     name: "libHidlBase_parcel_fuzzer",
-    srcs: ["libHidlBase_parcel_fuzzer.cpp",],
+    srcs: ["libHidlBase_parcel_fuzzer.cpp"],
     defaults: ["libHidlBase_fuzzer_defaults"],
 }
