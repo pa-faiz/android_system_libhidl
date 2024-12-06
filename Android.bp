@@ -120,13 +120,14 @@ cc_library {
     name: "libhidltransport",
     vendor_available: true,
 
-    visibility: [
-        ":__subpackages__",
-        "//hardware:__subpackages__",
-        "//test/sts:__subpackages__",
-        "//vendor:__subpackages__",
-        "//visibility:any_system_partition",
-    ],
+    // TODO(b/144056694) Add back the subpackages visibility restriction.
+    // visibility: [
+        // ":__subpackages__",
+        // "//hardware:__subpackages__",
+        // "//test/sts:__subpackages__",
+        // "//vendor:__subpackages__",
+        // "//visibility:any_system_partition",
+    // ],
 }
 
 cc_defaults {
